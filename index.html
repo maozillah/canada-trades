@@ -15,15 +15,15 @@ body {
 .line {
   fill: none;
   stroke: LightGrey;
-  stroke-width: 1;
-  shape-rendering: crispEdges;
+  stroke-width: 1.5;
+  shape-rendering: geometricPrecision;
 }
 
 .axis path,
 .axis line {
     fill: none;
     stroke: LightGrey;
-    stroke-width: 2;
+    stroke-width: 1;
     shape-rendering: crispEdges;
 }
 
@@ -44,23 +44,24 @@ body {
 }
 
 .chart-title {
-  font-weight: bold;
-  fill: DimGrey;
+  /*font-weight: bold;*/
+  fill: #262626;
 }
 
 .description {
   display: inline-block;
 }
 
-.legend {
-  float: right;
-  width: 20%;
-  padding-top: 2%
+.meta1 {
+  float: left;
+  width: 30%;
+  padding-right: 2%;
 }
 
-.meta {
+.meta2 {
   float: left;
-  width: 70%;
+  width: 60%;
+  padding-right: 2%;
 }
 </style>
 <body>
@@ -68,29 +69,48 @@ body {
 <div id="container">
 
   <div class="description">
-  
-  <div class="meta">
-    <h1>Gender Trends in Apprenticeship Completions in Canada</h1>
-    <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Dolore beatae aliquam possimus necessitatibus esse sit optio animi, earum nulla ea aliquid temporibus neque autem ex, molestias. Illo atque, assumenda et.</p>
+  <h1>Gender Trends in Apprenticeship Completions in Canada</h1>
+
+  <div class="meta1">
+    <p>Many university grads struggle to find jobs while on the other hand, it is estimated that by 2020 Canada will be short 1 million workers in the skilled trades (<a href="http://www.workforceinnovation.ca/challenges/labour-shortages-trades" target="_blank">source</a>).</p>
+    <p>The following line charts are ranked from most to least popular trades and show the total number of people (relative to working population) who completed an apprenticeship. Each chart has its own y-axis in order to show individual trends. </p>
+    <p>The data source is from the Canadian government's Open Canada initiative and can be found <a href="http://open.canada.ca/data/en/dataset/f3c189f5-9dbe-428b-8bd5-9cc65f00e708" target="_blank">here</a>. </p>
+
+    <h3>Legend</h3>
+    <p> <span style="color:rgb(31, 119, 180);">&mdash;</span> Male&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:rgb(255, 127, 14);">&mdash;</span> Female</p>
   </div>
 
-    <div class="legend">
-      <h3>Legend</h3>
-      <p><span style="color:rgb(255, 127, 14);">&mdash;</span> Male</p>
-      <p><span style="color:rgb(31, 119, 180);">&mdash;</span> Female</p>
+  <div class="meta2">
+    <p>Overall, there is a steady growth of total people completing apprenticeships with a much greater increase for males compared to females.</p>
+    <p>As for general trends, you can see where confidence in certain trades (landscape technicians and construction workers) were hit by the 2008 recession while others were unaffected (electricians).</p>
+    <p>In terms of gender, there are a few trends that reinforce existing stereotypes
+      <ul>
+        <li>Very few women choose the trades</li>
+        <li>Of those that do choose a trade, they tend towards more <em>support and service roles</em> such as Hairstylists & estheticians,  user support technicians, early childhood, and community service workers
+        </li>
+        <li>The majority of the trades require <strong>manual labour</strong> so it's not surprising that fewer women are present
+        </li>
+        <li>For the men, they're mostly distributed in the high paying trades such as electricians, automotive, and plumbers
+        </li>
+      </ul></p>
+
     </div>
+
   </div>
 
-  <div id="graph"></div>
+<div id="graph"></div>
+</div>
+
 </div>
 
 <script src="//d3js.org/d3.v3.min.js"></script>
 <script type="text/javascript">
 
+var toggle = false;
 var margin = {
-        top: 50,
+        top: 30,
         right: 20,
-        bottom: 20,
+        bottom: 40,
         left: 60
     },
     width = 474 - margin.left - margin.right,
@@ -128,7 +148,7 @@ d3.csv("trades.csv", type, function(error, data) {
         })
         .key(function(d) {
             return d.category;
-        }).sortKeys(d3.ascending)
+        }).sortKeys(d3.descending)
         .entries(data);
 
     x.domain([
@@ -216,9 +236,20 @@ d3.csv("trades.csv", type, function(error, data) {
         .attr("transform", "translate(0," + height + ")")
         .call(xAxis);
 
+    // d3.select("button")
+    // .on("click", clicked);
+
+    // function clicked() {
+    //   toggle = !toggle;
+    //  dataNest.forEach(function(d) {
+    //     return  multiple(d);
+    //   });
+    // }
+
 });
 
 function multiple(dataNest) {
+
     var svg = d3.select(this);
 
     var tradeGraph = d3.select("#" + dataNest.key.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '').replace(/\s/g, ''));
@@ -237,9 +268,12 @@ function multiple(dataNest) {
     var maxY = Math.max(maxMales, maxFemales);
 
     // set individual y domains per trade
-    y.domain([0, maxY]);
+    // y.domain([0, maxY]);
 
-    // Add the Y Axis
+    y.domain((toggle ? [0, 8000] : [0, maxY]));
+    // tradeGraph.call(yAxis);
+
+    // // Add the Y Axis
     tradeGraph.append("g")
         .attr("class", "y axis")
         .call(yAxis);
@@ -254,16 +288,16 @@ function multiple(dataNest) {
             })
             .attr("d", line(d.values));
 
-        circle = svg.append("circle")
-            .attr("r", 2.2)
-            .attr("opacity", 0)
-            .style("pointer-events", "none");
+        // circle = svg.append("circle")
+        //     .attr("r", 2.2)
+        //     .attr("opacity", 0)
+        //     .style("pointer-events", "none");
 
-        caption = svg.append("text")
-            .attr("class", "caption")
-            .attr("text-anchor", "middle")
-            .style("pointer-events", "none")
-            .attr("dy", -8);
+        // caption = svg.append("text")
+        //     .attr("class", "caption")
+        //     .attr("text-anchor", "middle")
+        //     .style("pointer-events", "none")
+        //     .attr("dy", -8);
     });
 
 }
