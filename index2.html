@@ -35,17 +35,15 @@ var margin = {top: 30, right: 20, bottom: 20, left: 50},
     height = 400 - margin.top - margin.bottom;
 
 var parseDate = d3.time.format("%Y").parse;
+var x = d3.time.scale().range([0, width]);
+var y = d3.scale.linear().range([height, 0]);
 
-var x = d3.time.scale()
-    .range([0, width]);
-
-var y = d3.scale.linear()
-    .range([height, 0]);
-
-var xAxis = d3.svg.axis().scale(x)
+var xAxis = d3.svg.axis()
+    .scale(x)
     .orient("bottom").ticks(5);
 
-var yAxis = d3.svg.axis().scale(y)
+var yAxis = d3.svg.axis()
+    .scale(y)
     .orient("left").ticks(5);
 
 var color = d3.scale.category10();
@@ -81,17 +79,20 @@ d3.csv("trades.csv", type, function(error, data) {
       svg = div.select("svg").attr("width", width + margin.left + margin.right)
       .attr("height", height + margin.top + margin.bottom);
 
-      g = svg.select("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+      g = svg.select("g")
+        .attr("id", function(d) {
+            return d.key.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '').replace(/\s/g, '');
+          })
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
       
        g.append("rect")
           .attr("class", "background")
           .style("pointer-events", "all")
           .attr("width", width + margin.right)
-          .attr("height", height)
-          ;
+          .attr("height", height);
 
-       lines = g.append("g");
-       lines.each(multiple);
+       lines = g.append("g")
+        .each(multiple);
 
   lines.append("text")
       .attr('x', width / 2)
@@ -105,14 +106,12 @@ d3.csv("trades.csv", type, function(error, data) {
         .attr("transform", "translate(0," + height + ")")
         .call(xAxis);
 
-    // Add the Y Axis
-    g.append("g")
-        .attr("class", "y axis")
-        .call(yAxis);
 });
 
 function multiple(dataNest) {
   var svg = d3.select(this);
+
+  var tradeGraph = d3.select("#" + dataNest.key.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '').replace(/\s/g, ''));
 
   //TO DO fix hard coding of values[]
   var maxMales = d3.max(dataNest.values[1].values, 
@@ -127,6 +126,11 @@ function multiple(dataNest) {
 
   // set individual y domains per trade
   y.domain([0, maxY]);
+
+  // Add the Y Axis
+  tradeGraph.append("g")
+      .attr("class", "y axis")
+      .call(yAxis);
 
   // multi-line for male and female
   dataNest.values.forEach(function(d,i) {
