@@ -114,8 +114,7 @@ d3.csv("trades.csv", type, function(error, data) {
 function multiple(dataNest) {
   var svg = d3.select(this);
 
-  // var maxY = d3.max(dataset, function(i) { return Math.max(i.y1, i.y2); });  
-
+  //TO DO fix hard coding of values[]
   var maxMales = d3.max(dataNest.values[1].values, 
         function(d) { 
           return d.people; });
@@ -127,12 +126,7 @@ function multiple(dataNest) {
   var maxY = Math.max(maxMales, maxFemales);
 
   // set individual y domains per trade
-  //TO DO fix hard coding of values[]
-  y.domain([0, 
-      maxY
-      ]);
-
-
+  y.domain([0, maxY]);
 
   // multi-line for male and female
   dataNest.values.forEach(function(d,i) {
