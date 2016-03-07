@@ -3,7 +3,7 @@
 <style>
 
 body {
-  font: 10px sans-serif;
+  font: 12px sans-serif;
   margin: 0;
 }
 
@@ -37,7 +37,7 @@ path {
 <script src="//d3js.org/d3.v3.min.js"></script>
 <script>
 
-var margin = {top: 8, right: 10, bottom: 2, left: 10},
+var margin = {top: 30, right: 20, bottom: 20, left: 50},
     width = 800 - margin.left - margin.right,
     height = 400 - margin.top - margin.bottom;
 
@@ -68,13 +68,14 @@ d3.csv("trades.csv", type, function(error, data) {
       .key(function(d) {return d.category; }).sortKeys(d3.ascending)
       .entries(data);
 
-  // x.domain([
-  //   d3.min(dataNest, function(dataNest) { return dataNest.values[0].date; }),
-  //   d3.max(dataNest, function(dataNest) { return dataNest.values[dataNest.values.length - 1].date; })
-  // ]);
+  x.domain([
+    d3.min(dataNest, function(dataNest) { 
+      return dataNest.values[0].values[0].date; }),
+    d3.max(dataNest, function(dataNest) { 
+      return dataNest.values[0].values[dataNest.values[0].values.length - 1].date; })
+  ]);
 
-   x.domain(d3.extent(data, function(d) { return d.date; }));
-  y.domain([0, d3.max(data, function(d) { return d.people; })]);
+  // y.domain([0, d3.max(data, function(d) { return d.people; })]);
 
   var svg = d3.select("body").selectAll("svg")
       .data(dataNest)
@@ -86,9 +87,9 @@ d3.csv("trades.csv", type, function(error, data) {
       .each(multiple);
 
   svg.append("text")
-      .attr("x", width - 6)
-      .attr("y", height - 6)
-      .style("text-anchor", "end")
+      .attr('x', width / 2)
+      .attr('y', 0)
+      .style("text-anchor", "middle")
       .text(function(d) { return d.key; });
 
   // Add the X Axis
@@ -106,13 +107,16 @@ d3.csv("trades.csv", type, function(error, data) {
 function multiple(dataNest) {
   var svg = d3.select(this);
 
-  console.log(dataNest);
+  // set individual domains per trade
+  //TO DO fix hard coding of values[]
+  y.domain([0, 
+      d3.max(dataNest.values[1].values, 
+        function(d) { return d.people; })
+      ]);
 
   dataNest.values.forEach(function(d,i) {
 
-    // y.domain([0, d3.max(d.values, function(d) { return d.people; })]);
-
-    console.log(d);
+    // console.log(d);
     svg.append("path")
         .attr("class", "line")
         .style("stroke", function() {
