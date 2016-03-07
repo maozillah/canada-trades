@@ -1,184 +1,276 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<style> /* set the CSS */
+<style>
 
-body { font: 12px Arial;}
+body {
+  font: 16px sans-serif;
+  margin: 0;
+}
 
-path { 
-    stroke: steelblue;
-    stroke-width: 2;
-    fill: none;
+#container {
+  max-width: 960px;
+  margin: 50px auto 100px auto;
+}
+
+.line {
+  fill: none;
+  stroke: LightGrey;
+  stroke-width: 1;
+  shape-rendering: crispEdges;
 }
 
 .axis path,
 .axis line {
     fill: none;
-    stroke: grey;
-    stroke-width: 1;
+    stroke: LightGrey;
+    stroke-width: 2;
     shape-rendering: crispEdges;
 }
 
-.legend {
-    font-size: 16px;
-    font-weight: bold;
-    text-anchor: middle;
-} 
+.axis text {
+  fill: Grey;
+}
 
 .background {
   fill: none;
 }
 
+.chart {
+  float: left;
+  padding-right: 5px;
+  padding-bottom: 5px;
+  padding-top:0;
+  padding-left:0;
+}
+
+.chart-title {
+  font-weight: bold;
+  fill: DimGrey;
+}
+
+.description {
+  display: inline-block;
+}
+
+.legend {
+  float: right;
+  width: 20%;
+  padding-top: 2%
+}
+
+.meta {
+  float: left;
+  width: 70%;
+}
 </style>
 <body>
 
-<!-- load the d3.js library -->    
-<script src="https://d3js.org/d3.v3.min.js"></script>
+<div id="container">
 
+  <div class="description">
+  
+  <div class="meta">
+    <h1>Gender Trends in Apprenticeship Completions in Canada</h1>
+    <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Dolore beatae aliquam possimus necessitatibus esse sit optio animi, earum nulla ea aliquid temporibus neque autem ex, molestias. Illo atque, assumenda et.</p>
+  </div>
+
+    <div class="legend">
+      <h3>Legend</h3>
+      <p><span style="color:rgb(255, 127, 14);">&mdash;</span> Male</p>
+      <p><span style="color:rgb(31, 119, 180);">&mdash;</span> Female</p>
+    </div>
+  </div>
+
+  <div id="graph"></div>
+</div>
+
+<script src="//d3js.org/d3.v3.min.js"></script>
 <script type="text/javascript">
 
-// Set the dimensions of the canvas / graph
-margin = {top: 30, right: 20, bottom: 70, left: 50}, 
-    width = 600 - margin.left - margin.right,
-    height = 300 - margin.top - margin.bottom; 
+var margin = {
+        top: 50,
+        right: 20,
+        bottom: 20,
+        left: 60
+    },
+    width = 474 - margin.left - margin.right,
+    height = 250 - margin.top - margin.bottom;
 
-    width2 = 600;
-    height2 = 120;
-    margin2 = {
-        top: 15,
-        right: 10,
-        bottom: 40,
-        left: 35
-    };
-
-// Parse the date / time
-var parseDate = d3.time.format("%Y").parse; 
-
-// Set the ranges
+var parseDate = d3.time.format("%Y").parse;
 var x = d3.time.scale().range([0, width]);
 var y = d3.scale.linear().range([height, 0]);
 
-// Define the axes
-var xAxis = d3.svg.axis().scale(x)
+var xAxis = d3.svg.axis()
+    .scale(x)
     .orient("bottom").ticks(5);
 
-var yAxis = d3.svg.axis().scale(y)
+var yAxis = d3.svg.axis()
+    .scale(y)
     .orient("left").ticks(5);
 
 var color = d3.scale.category10();
 
-// Define the line
-var priceline = d3.svg.line()
-    .x(function(d) { return x(d.date); })
-    .y(function(d) { return y(d.people); });
-    
-// Adds the svg canvas
-var svg = d3.select("body")
-    .append("svg")
-        .attr("width", width + margin.left + margin.right)
-        .attr("height", height + margin.top + margin.bottom)
-    .append("g")
-        .attr("transform", 
-              "translate(" + margin.left + "," + margin.top + ")");
+var circle, caption;
 
-// Get the data
-d3.csv("trades.csv", function(error, data) {
-    data.forEach(function(d) {
-		d.date = parseDate(d.date);
-		d.people = +d.people;
-    }); 
-
-
-    // Nest the entries by symbol. nest adds everything to values
-    var dataNest = d3.nest()
-        .key(function(d) {return d.trade;})
-        .key(function(d) {return d.category; }).sortKeys(d3.ascending)
-        .entries(data);
-
-     // Scale the range of the data
-
-    legendSpace = width/3; // spacing for legend
-
-        x.domain(d3.extent(data, function(d) { return d.date; }));
-        y.domain([0, d3.max(data, function(d) { return d.people; })]);
-
-
-        var div = d3.select("body")
-                .selectAll(".chart")
-                .data(dataNest);
-
-        div.enter().append("div")
-                .attr("class", "chart")
-                .append("svg")
-                .append("g");
-
-        svg = div.select("svg").attr("width", width2 + margin2.left + margin2.right).attr("height", height2 + margin2.top + margin2.bottom);
-
-        g = svg.select("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-        g.append("rect")
-                .attr("class", "background")
-                .style("pointer-events", "all")
-                .attr("width", width2 + margin2.right)
-                .attr("height", height)
-
-        lines = g.append("g");
-
-        // lines.append("path")
-        //   .attr("class", "line")
-        //   .attr("d", function(d, i) {
-        //     return priceline(d.values[i].values);
-        // });
-
-    // do this for each trade
-    dataNest.forEach (function(d,i) { 
-
-        // electrician
-        dataNest[0].values.forEach(function(d,i) {
-
-            lines.append("path")
-                .attr("class", "line")
-                .style("stroke", function() {
-                    return d.color = color(d.key); }) 
-                .attr("id", 'tag'+d.key.replace(/\s+/g, '')) // assign ID, replace whitespace with regex
-                .attr("d", priceline(d.values)); 
-
-            // Add the Legend
-            lines.append("text")                                    
-                .attr("x", (legendSpace/2)+i*legendSpace) // spacing 
-                .attr("y", height + (margin.bottom/2)+ 5)        
-                .attr("class", "legend")    // style the legend  
-                .style("fill", function() { // dynamic colours   
-                    return d.color = color(d.key); }) 
-
-                .on("click", function(){    
-                    // Determine if current line is visible 
-                    var active = d.active ? false : true,  
-                    newOpacity = active ? 0 : 1;
-
-                    // Hide or show the elements based on the ID
-                    d3.select("#tag"+d.key.replace(/\s+/g, ''))
-                        .transition().duration(100) 
-                        .style("opacity", newOpacity); 
-
-                    // Update whether or not the elements are active
-                    d.active = active;   
-                })    
-                .text(d.key);                     
-        });
+var line = d3.svg.line()
+    .x(function(d) {
+        return x(d.date);
+    })
+    .y(function(d) {
+        return y(d.people);
     });
 
+d3.csv("trades.csv", type, function(error, data) {
+
+    var dataNest = d3.nest()
+        .key(function(d) {
+            return d.trade;
+        })
+        .key(function(d) {
+            return d.category;
+        }).sortKeys(d3.ascending)
+        .entries(data);
+
+    x.domain([
+        d3.min(dataNest, function(dataNest) {
+            return dataNest.values[0].values[0].date;
+        }),
+        d3.max(dataNest, function(dataNest) {
+            return dataNest.values[0].values[dataNest.values[0].values.length - 1].date;
+        })
+    ]);
+
+    var div = d3.select("#graph").selectAll(".chart")
+        .data(dataNest);
+
+    div.enter().append("div")
+        .attr("class", "chart")
+        .append("svg")
+        .append("g");
+
+    svg = div.select("svg").attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom);
+
+    g = svg.select("g")
+        .attr("id", function(d) {
+            return d.key.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '').replace(/\s/g, '');
+        })
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    g.append("rect")
+       .attr("class", "background")
+       .style("pointer-events", "all")
+       .attr("width", width + margin.right)
+       .attr("height", height);
+
+    // mouse effects
+    // var mouseG = g.append("g")
+    //     .attr("class", "mouse-over-effects");
+
+
+    // // keep a reference to all our lines. one line for each
+    // var lines = document.getElementsByClassName('line');
+
+    // // here's a g for each circle and text on the line. should be in the inner loop with the lines
+    // var mousePerLine = mouseG.selectAll('.mouse-per-line')
+    //     .data(dataNest)
+    //     .enter()
+    //     .append("g")
+    //     .attr("class", "mouse-per-line");
+
+    // // the circle
+    // mousePerLine.append("circle")
+    //     .attr("r", 7)
+    //     .style("stroke", function(d) {
+    //         return color(d.name);
+    //     })
+    //     .style("fill", "none")
+    //     .style("stroke-width", "1px")
+    //     .style("opacity", "0");
+
+    // // the text
+    // mousePerLine.append("text")
+    //     .attr("transform", "translate(10,3)");
+
+    // mouseG.append("path")
+    //     .attr("class", "mouse-line")
+    //     .style("stroke", "black")
+    //     .style("stroke-width", "1px")
+    //     .style("opacity", "0");
+
+    lines = g.append("g")
+        .each(multiple);
+
+    lines.append("text")
+        .attr('x', width / 2)
+        .attr('class', 'chart-title')
+        .attr('y', 0)
+        .style("text-anchor", "middle")
+        .text(function(d) {
+            return d.key;
+        });
+
     // Add the X Axis
-    lines.append("g")
+    g.append("g")
         .attr("class", "x axis")
         .attr("transform", "translate(0," + height + ")")
         .call(xAxis);
 
+});
+
+function multiple(dataNest) {
+    var svg = d3.select(this);
+
+    var tradeGraph = d3.select("#" + dataNest.key.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '').replace(/\s/g, ''));
+
+    //TO DO fix hard coding of values[]
+    var maxMales = d3.max(dataNest.values[1].values,
+        function(d) {
+            return d.people;
+        });
+
+    var maxFemales = d3.max(dataNest.values[0].values,
+        function(d) {
+            return d.people;
+        });
+
+    var maxY = Math.max(maxMales, maxFemales);
+
+    // set individual y domains per trade
+    y.domain([0, maxY]);
+
     // Add the Y Axis
-    lines.append("g")
+    tradeGraph.append("g")
         .attr("class", "y axis")
         .call(yAxis);
 
-});
+    // multi-line for male and female
+    dataNest.values.forEach(function(d, i) {
+        // console.log(d);
+        svg.append("path")
+            .attr("class", "line")
+            .style("stroke", function() {
+                return d.color = color(d.key);
+            })
+            .attr("d", line(d.values));
 
+        circle = svg.append("circle")
+            .attr("r", 2.2)
+            .attr("opacity", 0)
+            .style("pointer-events", "none");
+
+        caption = svg.append("text")
+            .attr("class", "caption")
+            .attr("text-anchor", "middle")
+            .style("pointer-events", "none")
+            .attr("dy", -8);
+    });
+
+}
+
+function type(d) {
+    d.people = +d.people;
+    d.date = parseDate(d.date);
+    return d;
+}
 </script>
-</body>
