@@ -14,24 +14,17 @@ body {
   shape-rendering: crispEdges;
 }
 
-path { 
-    stroke: steelblue;
-    stroke-width: 2;
-    fill: none;
-}
-
 .axis path,
 .axis line {
     fill: none;
     stroke: grey;
-    stroke-width: 1;
+    stroke-width: 2;
     shape-rendering: crispEdges;
 }
 
-.area {
-  fill: #e7e7e7;
+.background {
+  fill: none;
 }
-
 </style>
 <body>
 <script src="//d3js.org/d3.v3.min.js"></script>
@@ -75,31 +68,42 @@ d3.csv("trades.csv", type, function(error, data) {
       return dataNest.values[0].values[dataNest.values[0].values.length - 1].date; })
   ]);
 
-  // y.domain([0, d3.max(data, function(d) { return d.people; })]);
+  var div = d3.select("body").selectAll(".chart")
+      .data(dataNest);
 
-  var svg = d3.select("body").selectAll("svg")
-      .data(dataNest)
-    .enter().append("svg")
-      .attr("width", width + margin.left + margin.right)
-      .attr("height", height + margin.top + margin.bottom)
-    .append("g")
-      .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-      .each(multiple);
+    div.enter().append("div")
+      .attr("class", "chart")
+        .append("svg")
+        .append("g");
 
-  svg.append("text")
+      svg = div.select("svg").attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom);
+
+      g = svg.select("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+      
+       g.append("rect")
+          .attr("class", "background")
+          .style("pointer-events", "all")
+          .attr("width", width + margin.right)
+          .attr("height", height);
+
+       lines = g.append("g");
+       lines.each(multiple);
+
+  lines.append("text")
       .attr('x', width / 2)
       .attr('y', 0)
       .style("text-anchor", "middle")
       .text(function(d) { return d.key; });
 
   // Add the X Axis
-    svg.append("g")
+    g.append("g")
         .attr("class", "x axis")
         .attr("transform", "translate(0," + height + ")")
         .call(xAxis);
 
     // Add the Y Axis
-    svg.append("g")
+    g.append("g")
         .attr("class", "y axis")
         .call(yAxis);
 });
