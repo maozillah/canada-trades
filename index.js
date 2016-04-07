@@ -22,7 +22,7 @@ var yAxis = d3.svg.axis()
 
 var color = d3.scale.category10();
 
-var circle, caption;
+var mouseG, mousePerLine, chartlines;
 
 var line = d3.svg.line()
     .x(function(d) {
@@ -69,46 +69,94 @@ d3.csv("trades.csv", type, function(error, data) {
         })
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-    g.append("rect")
-        .attr("class", "background")
-        .style("pointer-events", "all")
-        .attr("width", width + margin.right)
-        .attr("height", height);
+    mouseG = g.append("g")
+        .attr("class", "mouse-over-effects");
 
-    // mouse effects
-    // var mouseG = g.append("g")
-    //     .attr("class", "mouse-over-effects");
+    mouseG.append("path")
+        .attr("class", "mouse-line")
+        .style("stroke", "black")
+        .style("stroke-width", "1px")
+        .style("opacity", "0");
 
+         // keep a reference to all our lines
+    chartlines = document.getElementsByClassName('line');
 
-    // // keep a reference to all our lines. one line for each
-    // var lines = document.getElementsByClassName('line');
+    // g.append("rect")
+    //     .attr("class", "background")
+    //     .style("pointer-events", "all")
+    //     .attr("width", width + margin.right)
+    //     .attr("height", height);
 
-    // // here's a g for each circle and text on the line. should be in the inner loop with the lines
-    // var mousePerLine = mouseG.selectAll('.mouse-per-line')
-    //     .data(dataNest)
-    //     .enter()
-    //     .append("g")
-    //     .attr("class", "mouse-per-line");
+     mouseG.append('svg:rect')
+    .attr('width', width)
+    .attr('height', height)
+    .attr('fill', 'none')
+    .attr('pointer-events', 'all')
+    .on('mouseout', function() { // on mouse out hide line, circles and text
+        d3.select(".mouse-line")
+            .style("opacity", "0");
+        d3.selectAll(".mouse-per-line circle")
+            .style("opacity", "0");
+        d3.selectAll(".mouse-per-line text")
+            .style("opacity", "0");
+    })
+    .on('mouseover', function() { // on mouse in show line, circles and text
+        d3.select(".mouse-line")
+            .style("opacity", "1");
+        d3.selectAll(".mouse-per-line circle")
+            .style("opacity", "1");
+        d3.selectAll(".mouse-per-line text")
+            .style("opacity", "1");
+    })
+    .on('mousemove', function() { // mouse moving over canvas
+        var mouse = d3.mouse(this);
 
-    // // the circle
-    // mousePerLine.append("circle")
-    //     .attr("r", 7)
-    //     .style("stroke", function(d) {
-    //         return color(d.name);
-    //     })
-    //     .style("fill", "none")
-    //     .style("stroke-width", "1px")
-    //     .style("opacity", "0");
+        // move the vertical line
+        d3.select(".mouse-line")
+            .attr("d", function() {
+                var d = "M" + mouse[0] + "," + height;
+                d += " " + mouse[0] + "," + 0;
+                return d;
+            });
 
-    // // the text
-    // mousePerLine.append("text")
-    //     .attr("transform", "translate(10,3)");
+        // position the circle and text
+        d3.selectAll(".mouse-per-line")
+            .attr("transform", function(d, i) {
+                // console.log(width / mouse[0]);
+                var xDate = x.invert(mouse[0]),
+                    bisect = d3.bisector(function(d) {
+                        return d.date;
+                    }).right;
+                idx = bisect(d.values, xDate);
 
-    // mouseG.append("path")
-    //     .attr("class", "mouse-line")
-    //     .style("stroke", "black")
-    //     .style("stroke-width", "1px")
-    //     .style("opacity", "0");
+                // since we are use curve fitting we can't relay on finding the points like I had done in my last answer
+                // this conducts a search using some SVG path functions
+                // to find the correct position on the line
+                // from http://bl.ocks.org/duopixel/3824661
+                
+                var beginning = 0,
+                    end = chartlines[i].getTotalLength(),
+                    target = null;
+
+                while (true) {
+                    target = Math.floor((beginning + end) / 2);
+                    pos = chartlines[i].getPointAtLength(target);
+                    if ((target === end || target === beginning) && pos.x !== mouse[0]) {
+                        break;
+                    }
+                    if (pos.x > mouse[0]) end = target;
+                    else if (pos.x < mouse[0]) beginning = target;
+                    else break; //position found
+                }
+
+                // update the text with y value
+                d3.select(this).select('text')
+                    .text(y.invert(pos.y).toFixed(2));
+
+                // return position
+                return "translate(" + mouse[0] + "," + pos.y + ")";
+            });
+    });
 
     lines = g.append("g")
         .each(multiple);
@@ -144,6 +192,28 @@ function multiple(dataNest) {
 
     var svg = d3.select(this);
 
+
+    // here's a g for each circle and text on the line
+    mousePerLine = mouseG.selectAll('.mouse-per-line')
+        .data(dataNest.values)
+        .enter()
+        .append("g")
+        .attr("class", "mouse-per-line");
+
+    // the circle
+    mousePerLine.append("circle")
+        .attr("r", 7)
+        .style("stroke", function(d) {
+            return color(d.key);
+        })
+        .style("fill", "none")
+        .style("stroke-width", "1px")
+        .style("opacity", "0");
+
+    // the text
+    mousePerLine.append("text")
+        .attr("transform", "translate(10,3)");
+
     var tradeGraph = d3.select("#" + dataNest.key.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '').replace(/\s/g, ''));
 
     //TODO fix hard coding of values[]
@@ -178,18 +248,8 @@ function multiple(dataNest) {
             .style("stroke", function() {
                 return d.color = color(d.key);
             })
+            .attr("class", "line")
             .attr("d", line(d.values));
-
-        // circle = svg.append("circle")
-        //     .attr("r", 2.2)
-        //     .attr("opacity", 0)
-        //     .style("pointer-events", "none");
-
-        // caption = svg.append("text")
-        //     .attr("class", "caption")
-        //     .attr("text-anchor", "middle")
-        //     .style("pointer-events", "none")
-        //     .attr("dy", -8);
     });
 
 }
