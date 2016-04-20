@@ -22,7 +22,8 @@ var yAxis = d3.svg.axis()
 
 var color = d3.scale.category10();
 
-var mouseG, mousePerLine, chartlines;
+var mouseG, mousePerLine, chartlines, caption;
+caption = null;
 
 var line = d3.svg.line()
     .x(function(d) {
@@ -121,9 +122,8 @@ function multiple(dataNest) {
 
     var svg = d3.select(this);
 
-
     // here's a g for each circle and text on the line
-    mousePerLine = mouseG.selectAll('.mouse-per-line')
+    mousePerLine = svg.selectAll('.mouse-per-line')
         .data(dataNest.values)
         .enter()
         .append("g")
@@ -140,7 +140,9 @@ function multiple(dataNest) {
         .style("opacity", "0");
 
     // the text
-    mousePerLine.append("text")
+    caption = mousePerLine.append("text")
+        .attr("class", "caption")
+        .style("pointer-events", "none")
         .attr("transform", "translate(10,3)");
 
     var tradeGraph = d3.select("#" + dataNest.key.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '').replace(/\s/g, ''));
@@ -186,78 +188,86 @@ function multiple(dataNest) {
         .attr('height', height)
         .attr('fill', 'none')
         .attr('pointer-events', 'all')
-        .on('mouseout', function() { // on mouse out hide line, circles and text
-            d3.select(".mouse-line")
-                .style("opacity", "0");
-            d3.selectAll(".mouse-per-line circle")
-                .style("opacity", "0");
-            d3.selectAll(".mouse-per-line text")
-                .style("opacity", "0");
-        })
-        .on('mouseover', function() { // on mouse in show line, circles and text
-            d3.select(".mouse-line")
-                .style("opacity", "1");
-            d3.selectAll(".mouse-per-line circle")
-                .style("opacity", "1");
-            d3.selectAll(".mouse-per-line text")
-                .style("opacity", "1");
-        })
-        .on('mousemove', function() { // mouse moving over canvas
-            var mouse = d3.mouse(this);
-            var date, index
-            var xDate = x.invert(mouse[0]).getFullYear();
+        .on("mouseover", mouseover)
+        .on("mousemove", mousemove)
+        .on("mouseout", mouseout);
 
-            date = format.parse('' + xDate);
-            index = 0;
+}
 
-            // move the vertical line
-            d3.select(".mouse-line")
-                .attr("d", function() {
-                    var d = "M" + mouse[0] + "," + height;
-                    d += " " + mouse[0] + "," + 0;
-                    return d;
+mouseout = function() { // on mouse out hide line, circles and text
+    d3.select(".mouse-line")
+        .style("opacity", "0");
+    d3.selectAll(".mouse-per-line circle")
+        .style("opacity", "0");
+    d3.selectAll(".mouse-per-line text")
+        .style("opacity", "0");
+}
+mouseover = function() { // on mouse in show line, circles and text
+    d3.select(".mouse-line")
+        .style("opacity", "1");
+    d3.selectAll(".mouse-per-line circle")
+        .style("opacity", "1");
+    d3.selectAll(".mouse-per-line text")
+        .style("opacity", "1");
+}
+
+mousemove = function() { // mouse moving over canvas
+    var mouse = d3.mouse(this);
+    var date, index
+    var xDate = x.invert(mouse[0]).getFullYear();
+
+    date = format.parse('' + xDate);
+    index = 0;
+
+    // move the vertical line
+    d3.select(".mouse-line")
+        .attr("d", function() {
+            var d = "M" + mouse[0] + "," + height;
+            d += " " + mouse[0] + "," + 0;
+            return d;
+        });
+
+    // position the circle and text
+    d3.selectAll(".mouse-per-line")
+        .attr("transform", function(d, i) {
+            // console.log(width / mouse[0]);
+            var bisect = d3.bisector(function(d) {
+                return d.date;
+            }).right;
+            idx = bisect(d.values, xDate);
+
+            // this conducts a search using some SVG path functions
+            // to find the correct position on the line
+            // from http://bl.ocks.org/duopixel/3824661
+
+            var beginning = 0,
+                end = chartlines[i].getTotalLength(),
+                target = null;
+
+            while (true) {
+                var target = Math.floor((beginning + end) / 2);
+                var pos = chartlines[i].getPointAtLength(target);
+                if ((target === end || target === beginning) && pos.x !== mouse[0]) {
+                    break;
+                }
+                if (pos.x > mouse[0]) end = target;
+                else if (pos.x < mouse[0]) beginning = target;
+                else break; //position found
+            }
+
+            // update the text with y value
+            // select text item from each bounded
+            d3.select(this)
+                .select('text')
+                .text(function(c) {
+                    index = bisect(c.values, date, 0, c.values.length - 1);
+
+                    console.log(c.values[index]);
+                    return yValue(c.values[index]);
                 });
 
-            // position the circle and text
-            d3.selectAll(".mouse-per-line")
-                .attr("transform", function(d, i) {
-                    // console.log(width / mouse[0]);
-                  var bisect = d3.bisector(function(d) {
-                            return d.date;
-                        }).right;
-                    idx = bisect(d.values, xDate);
-
-                    // this conducts a search using some SVG path functions
-                    // to find the correct position on the line
-                    // from http://bl.ocks.org/duopixel/3824661
-
-                    var beginning = 0,
-                        end = chartlines[i].getTotalLength(),
-                        target = null;
-
-                    while (true) {
-                        var target = Math.floor((beginning + end) / 2);
-                        var pos = chartlines[i].getPointAtLength(target);
-                        if ((target === end || target === beginning) && pos.x !== mouse[0]) {
-                            break;
-                        }
-                        if (pos.x > mouse[0]) end = target;
-                        else if (pos.x < mouse[0]) beginning = target;
-                        else break; //position found
-                    }
-
-                    // update the text with y value
-                    d3.select(this).select('text')
-                        .text(function(c) {
-                            index = bisect(c.values, date, 0, c.values.length - 1);
-
-                            console.log(c.values[index]);
-                            return yValue(c.values[index]);
-                        });
-
-                    // return position
-                    return "translate(" + mouse[0] + "," + pos.y + ")";
-                });
+            // return position
+            return "translate(" + mouse[0] + "," + pos.y + ")";
         });
 }
 
