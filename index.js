@@ -111,6 +111,12 @@ d3.csv("trades.csv", type, function(error, data) {
 
 });
 
+yValue = function(d) {
+    return d.people;
+};
+
+var format = d3.time.format("%Y");
+
 function multiple(dataNest) {
 
     var svg = d3.select(this);
@@ -175,7 +181,7 @@ function multiple(dataNest) {
             .attr("d", line(d.values));
     });
 
-     mouseG.append('svg:rect')
+    mouseG.append('svg:rect')
         .attr('width', width)
         .attr('height', height)
         .attr('fill', 'none')
@@ -198,6 +204,11 @@ function multiple(dataNest) {
         })
         .on('mousemove', function() { // mouse moving over canvas
             var mouse = d3.mouse(this);
+            var date, index
+            var xDate = x.invert(mouse[0]).getFullYear();
+
+            date = format.parse('' + xDate);
+            index = 0;
 
             // move the vertical line
             d3.select(".mouse-line")
@@ -211,8 +222,7 @@ function multiple(dataNest) {
             d3.selectAll(".mouse-per-line")
                 .attr("transform", function(d, i) {
                     // console.log(width / mouse[0]);
-                    var xDate = x.invert(mouse[0]),
-                        bisect = d3.bisector(function(d) {
+                  var bisect = d3.bisector(function(d) {
                             return d.date;
                         }).right;
                     idx = bisect(d.values, xDate);
@@ -238,14 +248,17 @@ function multiple(dataNest) {
 
                     // update the text with y value
                     d3.select(this).select('text')
-                        .text(y.invert(pos.y).toFixed(2));
+                        .text(function(c) {
+                            index = bisect(c.values, date, 0, c.values.length - 1);
+
+                            console.log(c.values[index]);
+                            return yValue(c.values[index]);
+                        });
 
                     // return position
                     return "translate(" + mouse[0] + "," + pos.y + ")";
                 });
         });
-
-
 }
 
 function type(d) {
