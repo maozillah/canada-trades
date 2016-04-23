@@ -22,8 +22,9 @@ var yAxis = d3.svg.axis()
 
 var color = d3.scale.category10();
 
-var mouseG, mousePerLine, chartlines, caption;
+var mouseG, mousePerLine, chartlines, caption, curYear;
 caption = null;
+curYear = null;
 
 var line = d3.svg.line()
     .x(function(d) {
@@ -131,19 +132,26 @@ function multiple(dataNest) {
 
     // the circle
     mousePerLine.append("circle")
-        .attr("r", 7)
-        .style("stroke", function(d) {
+        .attr("r", 3)
+        .style("fill", function(d) {
             return color(d.key);
         })
-        .style("fill", "none")
         .style("stroke-width", "1px")
         .style("opacity", "0");
 
     // the text
-    caption = mousePerLine.append("text")
+    mousePerLine.append("text")
         .attr("class", "caption")
         .style("pointer-events", "none")
-        .attr("transform", "translate(10,3)");
+        .attr("text-anchor", "middle")
+        .attr("dy", -8);
+
+    curYear = mousePerLine.append("text")
+        .attr("class", "year")
+        .attr("text-anchor", "middle")
+        .style("pointer-events", "none")
+        .attr("dy", 13)
+        .attr("y", height);
 
     var tradeGraph = d3.select("#" + dataNest.key.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '').replace(/\s/g, ''));
 
@@ -195,16 +203,14 @@ function multiple(dataNest) {
 }
 
 mouseout = function() { // on mouse out hide line, circles and text
-    d3.select(".mouse-line")
-        .style("opacity", "0");
     d3.selectAll(".mouse-per-line circle")
         .style("opacity", "0");
     d3.selectAll(".mouse-per-line text")
         .style("opacity", "0");
+
+    return curYear.text("");
 }
 mouseover = function() { // on mouse in show line, circles and text
-    d3.select(".mouse-line")
-        .style("opacity", "1");
     d3.selectAll(".mouse-per-line circle")
         .style("opacity", "1");
     d3.selectAll(".mouse-per-line text")
@@ -215,31 +221,21 @@ mousemove = function() { // mouse moving over canvas
     var mouse = d3.mouse(this);
     var date, index
     var xDate = x.invert(mouse[0]).getFullYear();
+    var bisect = d3.bisector(function(d) {
+                return d.date;
+            }).right;
 
     date = format.parse('' + xDate);
     index = 0;
 
-    // move the vertical line
-    d3.select(".mouse-line")
-        .attr("d", function() {
-            var d = "M" + mouse[0] + "," + height;
-            d += " " + mouse[0] + "," + 0;
-            return d;
-        });
-
     // position the circle and text
     d3.selectAll(".mouse-per-line")
         .attr("transform", function(d, i) {
-            // console.log(width / mouse[0]);
-            var bisect = d3.bisector(function(d) {
-                return d.date;
-            }).right;
             idx = bisect(d.values, xDate);
 
             // this conducts a search using some SVG path functions
             // to find the correct position on the line
             // from http://bl.ocks.org/duopixel/3824661
-
             var beginning = 0,
                 end = chartlines[i].getTotalLength(),
                 target = null;
@@ -256,19 +252,21 @@ mousemove = function() { // mouse moving over canvas
             }
 
             // update the text with y value
-            // select text item from each bounded
             d3.select(this)
                 .select('text')
                 .text(function(c) {
                     index = bisect(c.values, date, 0, c.values.length - 1);
 
-                    console.log(c.values[index]);
                     return yValue(c.values[index]);
                 });
+
+            // return curYear.attr("x", x(date)).text(xDate);
 
             // return position
             return "translate(" + mouse[0] + "," + pos.y + ")";
         });
+
+    // return curYear.attr("x", x(date)).text(xDate);
 }
 
 function type(d) {
